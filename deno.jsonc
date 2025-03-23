@@ -1,0 +1,34 @@
+{
+	"name": "@leawind/delegate",
+	"version": "0.1.3",
+	"license": "GPLv3",
+	"exports": "./src/index.ts",
+	"tasks": {
+		"dev": "deno test --watch --parallel",
+		"prepare": "deno fmt && deno lint && deno test -A"
+	},
+	"test": {
+		"include": [
+			"test/**/*.test.ts"
+		]
+	},
+	"imports": {
+		"@std": "jsr:@std",
+		"@/": "./src/"
+	},
+	"fmt": {
+		"useTabs": true,
+		"lineWidth": 80,
+		"indentWidth": 4,
+		"semiColons": true,
+		"singleQuote": true,
+		"proseWrap": "preserve",
+		"include": [
+			"README.md",
+			"deno.jsonc",
+			"src/",
+			"test/"
+		],
+		"exclude": []
+	}
+}
