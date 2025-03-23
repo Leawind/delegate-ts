@@ -23,10 +23,10 @@ import { Delegate } from '@leawind/delegate';
 const delegate = new Delegate<string>();
 
 // Add listeners
-delegate.addListener(event => {
+delegate.addListener((event) => {
 	console.log(`Listener 1: ${event}`);
 });
-delegate.addListener(event => {
+delegate.addListener((event) => {
 	console.log(`Listener 2: ${event.toUpperCase()}`);
 });
 
