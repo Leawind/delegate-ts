@@ -3,7 +3,7 @@
  *
  * If the return value === `false`, subsequent listeners will not be executed
  */
-type DelegateListener<E> = (event: E) => boolean | void;
+export type DelegateListener<E> = (event: E) => boolean | void;
 
 /**
  * A class that manages a list of listeners and allows broadcasting events to them.
