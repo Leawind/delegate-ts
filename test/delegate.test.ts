@@ -33,18 +33,18 @@ Deno.test('Remove listener', () => {
 		result += event;
 	};
 
-	delegate.addListener((e) => {
+	delegate.addListener(() => {
 		result += 'A';
 	});
 	delegate.addListener(listener);
 
-	delegate.addListener((e) => {
+	delegate.addListener(() => {
 		result += 'B';
 	});
 
 	delegate.removeListener(listener);
 
-	delegate.addListener((e) => {
+	delegate.addListener(() => {
 		result += 'C';
 	});
 
