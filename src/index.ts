@@ -13,6 +13,8 @@ export type DelegateListener<E> = (event: E) => boolean | void;
  * @template E The type of event object.
  */
 export class Delegate<E> {
+	public static readonly DEFAULT_PRIORITY = 0;
+
 	private name: string;
 
 	// From high to low priority
@@ -54,12 +56,12 @@ export class Delegate<E> {
 		let priority: number;
 		let listener: DelegateListener<E>;
 
-		if (args.length === 2) {
+		if (args.length === 1) {
+			priority = Delegate.DEFAULT_PRIORITY;
+			listener = args[0];
+		} else {
 			priority = args[0];
 			listener = args[1];
-		} else {
-			priority = 0;
-			listener = args[0];
 		}
 
 		let index = this.priorities.findIndex((p) => p < priority);
