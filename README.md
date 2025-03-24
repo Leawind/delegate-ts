@@ -1,5 +1,10 @@
 # `@leawind/delegate`
 
+[![GitHub License](https://img.shields.io/github/license/Leawind/delegate-ts)](https://github.com/LEAWIND/delegate-ts)
+[![JSR Version](https://jsr.io/badges/@leawind/delegate)](https://jsr.io/@leawind/delegate)
+[![deno score](https://jsr.io/badges/@leawind/delegate/score)](https://jsr.io/@leawind/delegate/doc)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Leawind/delegate-ts/deno-test.yaml?branch=main&logo=github-actions&label=test)](https://github.com/Leawind/delegate-ts/actions/workflows/deno-test.yaml)
+
 `@leawind/delegate` is a TypeScript library that manages a list of listeners and allows broadcasting events to them. Listeners can be added with a priority, and they will be called in order of priority. If a listener returns `false`, subsequent listeners will not be executed.
 
 ## Installation
