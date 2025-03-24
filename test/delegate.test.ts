@@ -13,12 +13,8 @@ Deno.test('Add listener', () => {
 	const delegate = new Delegate<string>();
 
 	let result = '';
-	delegate.addListener((event) => {
-		result += event;
-	});
-	delegate.addListener((event) => {
-		result += event.toUpperCase();
-	});
+	delegate.addListener((event) => result += event);
+	delegate.addListener((event) => result += event.toUpperCase());
 
 	delegate.broadcast('test');
 	assertStrictEquals(result, 'testTEST');
@@ -33,20 +29,14 @@ Deno.test('Remove listener', () => {
 		result += event;
 	};
 
-	delegate.addListener(() => {
-		result += 'A';
-	});
+	delegate.addListener(() => result += 'A');
 	delegate.addListener(listener);
 
-	delegate.addListener(() => {
-		result += 'B';
-	});
+	delegate.addListener(() => result += 'B');
 
 	delegate.removeListener(listener);
 
-	delegate.addListener(() => {
-		result += 'C';
-	});
+	delegate.addListener(() => result += 'C');
 
 	result = '';
 	delegate.broadcast('test');
@@ -59,19 +49,43 @@ Deno.test('Priority', () => {
 	// Test priority
 	let result = '';
 
-	delegate.addListener(1, () => {
-		result += 'a';
-	});
-	delegate.addListener(2, () => {
-		result += 'b';
-	});
-	delegate.addListener(2, () => {
-		result += 'c';
-	});
-	delegate.addListener(1, () => {
-		result += 'd';
-	});
+	delegate.addListener(() => result += 'a', 1);
+	delegate.addListener(() => result += 'b', 2);
+	delegate.addListener(() => result += 'c', 2);
+	delegate.addListener(() => result += 'd', 1);
 
 	delegate.broadcast();
 	assertStrictEquals(result, 'bcad');
+});
+
+Deno.test('times', () => {
+	const delegate = new Delegate<string>();
+
+	let str = '';
+	delegate.addListener(
+		(s) => str += s,
+		Delegate.DEFAULT_PRIORITY,
+		2,
+	);
+
+	delegate.broadcast('a');
+	delegate.broadcast('b');
+	delegate.broadcast('c');
+	delegate.broadcast('d');
+
+	assertStrictEquals(str, 'ab');
+});
+
+Deno.test('Handler returns false', () => {
+	const delegate = new Delegate<string>();
+
+	let result = '';
+	delegate.addListener((event) => {
+		result += event;
+		return false;
+	});
+	delegate.addListener((event) => result += event.toUpperCase());
+
+	delegate.broadcast('test');
+	assertStrictEquals(result, 'test');
 });

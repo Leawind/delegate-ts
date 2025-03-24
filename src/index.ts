@@ -3,7 +3,25 @@
  *
  * If the return value === `false`, subsequent listeners will not be executed
  */
-export type DelegateListener<E> = (event: E) => boolean | void;
+export type DelegateHandler<E> = (event: E) => false | unknown;
+
+export type DelegateListener<E> = {
+	/**
+	 * The priority of the listener.
+	 *
+	 * - Listeners with higher priority will be called first.
+	 * - Listeners with the same priority will be called in the order they were added.
+	 */
+	priority: number;
+	/**
+	 * How many times the listener will be called.
+	 *
+	 * If `times` is -1, the listener will be called indefinitely.
+	 */
+	times: number;
+
+	handler: DelegateHandler<E>;
+};
 
 /**
  * A class that manages a list of listeners and allows broadcasting events to them.
@@ -18,7 +36,6 @@ export class Delegate<E> {
 	private name: string;
 
 	// From high to low priority
-	private priorities: number[] = [];
 	private listeners: DelegateListener<E>[] = [];
 
 	/**
@@ -37,38 +54,33 @@ export class Delegate<E> {
 		return this.name;
 	}
 
-	/**
-	 * Add a listener to the delegate.
-	 * @param listener The listener to add.
-	 */
 	public addListener(listener: DelegateListener<E>): void;
-	/**
-	 * Add a listener to the delegate.
-	 * @param priority The priority of the listener. Listeners with higher priority will be called first. Listeners with the same priority will be called in the order they were added.
-	 * @param listener The listener to add.
-	 */
-	public addListener(priority: number, listener: DelegateListener<E>): void;
+	public addListener(
+		handler: DelegateHandler<E>,
+		priority?: number,
+		times?: number,
+	): void;
+
 	public addListener(
 		...args:
 			| [listener: DelegateListener<E>]
-			| [priority: number, listener: DelegateListener<E>]
+			| [handler: DelegateHandler<E>, priority?: number, times?: number]
 	): void {
-		let priority: number;
-		let listener: DelegateListener<E>;
+		const listener: DelegateListener<E> = typeof args[0] === 'function'
+			? {
+				handler: args[0],
+				priority: args[1] || Delegate.DEFAULT_PRIORITY,
+				times: args[2] || -1,
+			}
+			: args[0];
 
-		if (args.length === 1) {
-			priority = Delegate.DEFAULT_PRIORITY;
-			listener = args[0];
-		} else {
-			priority = args[0];
-			listener = args[1];
-		}
+		let index = this.listeners
+			.findIndex((w) => w.priority < listener.priority);
 
-		let index = this.priorities.findIndex((p) => p < priority);
 		if (index === -1) {
-			index = this.priorities.length;
+			index = this.listeners.length;
 		}
-		this.priorities.splice(index, 0, priority);
+
 		this.listeners.splice(index, 0, listener);
 	}
 
@@ -79,10 +91,10 @@ export class Delegate<E> {
 	 *
 	 * @param listener The listener to remove.
 	 */
-	public removeListener(listener: DelegateListener<E>): void {
-		const index = this.listeners.indexOf(listener);
+	public removeListener(listener: DelegateHandler<E>): void {
+		const index = this.listeners
+			.findIndex((l) => l.handler === listener);
 		if (index !== -1) {
-			this.priorities.splice(index, 1);
 			this.listeners.splice(index, 1);
 		}
 	}
@@ -92,10 +104,31 @@ export class Delegate<E> {
 	 * @param event The event to broadcast.
 	 */
 	public broadcast(event: E): void {
-		for (let i = 0; i < this.listeners.length; i++) {
-			if (this.listeners[i](event) === false) {
+		let i = 0;
+		while (i < this.listeners.length) {
+			const listener = this.listeners[i];
+
+			if (listener.times > 0) {
+				listener.times--;
+			}
+
+			const result = listener.handler(event);
+
+			if (listener.times === 0) {
+				this.listeners.splice(i, 1);
+
+				if (result === false) {
+					break;
+				} else {
+					continue;
+				}
+			}
+
+			if (result === false) {
 				break;
 			}
+
+			i++;
 		}
 	}
 }
