@@ -1,9 +1,32 @@
 /**
+ * The result of a delegate listener.
+ */
+export type DelegateResult = {
+	/**
+	 * Whether to break the loop.
+	 *
+	 * If `true`, subsequent listeners will not be executed.
+	 *
+	 * Default is `false`.
+	 */
+	break: boolean;
+
+	/**
+	 * Whether to remove the listener after the event is broadcast.
+	 *
+	 * If `true`, the listener will be removed after the event is broadcast.
+	 *
+	 * Default is `false`.
+	 */
+	removeSelf: boolean;
+};
+
+/**
  * Delegate listener
  *
  * If the return value === `false`, subsequent listeners will not be executed
  */
-export type DelegateListener<E> = (event: E) => false | unknown;
+export type DelegateListener<E> = (event: E) => Partial<DelegateResult> | void;
 
 export type DelegateListenerOptions = {
 	/**
@@ -13,12 +36,6 @@ export type DelegateListenerOptions = {
 	 * - Listeners with the same priority will be called in the order they were added.
 	 */
 	priority: number;
-	/**
-	 * How many times the listener will be called.
-	 *
-	 * If `times` is -1, the listener will be called indefinitely.
-	 */
-	times: number;
 };
 
 /**
@@ -57,13 +74,9 @@ export class Delegate<E> {
 		listener: DelegateListener<E>,
 		options?: Partial<DelegateListenerOptions>,
 	): void {
-		const parsedOption = Object.assign(
-			{
-				priority: Delegate.DEFAULT_PRIORITY,
-				times: -1,
-			},
-			options,
-		);
+		const parsedOption = Object.assign({
+			priority: Delegate.DEFAULT_PRIORITY,
+		}, options);
 
 		let index = this.listenerOptions
 			.findIndex((o) => o.priority < parsedOption.priority);
@@ -99,26 +112,13 @@ export class Delegate<E> {
 		let i = 0;
 		while (i < this.listeners.length) {
 			const listener = this.listeners[i];
-			const options = this.listenerOptions[i];
-
-			if (options.times > 0) {
-				options.times--;
-			}
-
 			const result = listener(event);
 
-			if (options.times === 0) {
-				this.listeners.splice(i, 1);
-				this.listenerOptions.splice(i, 1);
-
-				if (result === false) {
-					break;
-				} else {
-					continue;
-				}
+			if (result?.removeSelf) {
+				this.removeListener(listener);
 			}
 
-			if (result === false) {
+			if (result?.break) {
 				break;
 			}
 
