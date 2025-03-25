@@ -3,9 +3,9 @@
  *
  * If the return value === `false`, subsequent listeners will not be executed
  */
-export type DelegateHandler<E> = (event: E) => false | unknown;
+export type DelegateListener<E> = (event: E) => false | unknown;
 
-export type DelegateListener<E> = {
+export type DelegateListenerOptions = {
 	/**
 	 * The priority of the listener.
 	 *
@@ -19,8 +19,6 @@ export type DelegateListener<E> = {
 	 * If `times` is -1, the listener will be called indefinitely.
 	 */
 	times: number;
-
-	handler: DelegateHandler<E>;
 };
 
 /**
@@ -37,6 +35,7 @@ export class Delegate<E> {
 
 	// From high to low priority
 	private listeners: DelegateListener<E>[] = [];
+	private listenerOptions: DelegateListenerOptions[] = [];
 
 	/**
 	 * Creates an instance of Delegate.
@@ -54,34 +53,27 @@ export class Delegate<E> {
 		return this.name;
 	}
 
-	public addListener(listener: DelegateListener<E>): void;
 	public addListener(
-		handler: DelegateHandler<E>,
-		priority?: number,
-		times?: number,
-	): void;
-
-	public addListener(
-		...args:
-			| [listener: DelegateListener<E>]
-			| [handler: DelegateHandler<E>, priority?: number, times?: number]
+		listener: DelegateListener<E>,
+		options?: Partial<DelegateListenerOptions>,
 	): void {
-		const listener: DelegateListener<E> = typeof args[0] === 'function'
-			? {
-				handler: args[0],
-				priority: args[1] || Delegate.DEFAULT_PRIORITY,
-				times: args[2] || -1,
-			}
-			: args[0];
+		const parsedOption = Object.assign(
+			{
+				priority: Delegate.DEFAULT_PRIORITY,
+				times: -1,
+			},
+			options,
+		);
 
-		let index = this.listeners
-			.findIndex((w) => w.priority < listener.priority);
+		let index = this.listenerOptions
+			.findIndex((o) => o.priority < parsedOption.priority);
 
 		if (index === -1) {
 			index = this.listeners.length;
 		}
 
 		this.listeners.splice(index, 0, listener);
+		this.listenerOptions.splice(index, 0, parsedOption);
 	}
 
 	/**
@@ -91,11 +83,11 @@ export class Delegate<E> {
 	 *
 	 * @param listener The listener to remove.
 	 */
-	public removeListener(listener: DelegateHandler<E>): void {
-		const index = this.listeners
-			.findIndex((l) => l.handler === listener);
+	public removeListener(listener: DelegateListener<E>): void {
+		const index = this.listeners.indexOf(listener);
 		if (index !== -1) {
 			this.listeners.splice(index, 1);
+			this.listenerOptions.splice(index, 1);
 		}
 	}
 
@@ -107,15 +99,17 @@ export class Delegate<E> {
 		let i = 0;
 		while (i < this.listeners.length) {
 			const listener = this.listeners[i];
+			const options = this.listenerOptions[i];
 
-			if (listener.times > 0) {
-				listener.times--;
+			if (options.times > 0) {
+				options.times--;
 			}
 
-			const result = listener.handler(event);
+			const result = listener(event);
 
-			if (listener.times === 0) {
+			if (options.times === 0) {
 				this.listeners.splice(i, 1);
+				this.listenerOptions.splice(i, 1);
 
 				if (result === false) {
 					break;

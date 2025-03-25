@@ -49,10 +49,10 @@ Deno.test('Priority', () => {
 	// Test priority
 	let result = '';
 
-	delegate.addListener(() => result += 'a', 1);
-	delegate.addListener(() => result += 'b', 2);
-	delegate.addListener(() => result += 'c', 2);
-	delegate.addListener(() => result += 'd', 1);
+	delegate.addListener(() => result += 'a', { priority: 1 });
+	delegate.addListener(() => result += 'b', { priority: 2 });
+	delegate.addListener(() => result += 'c', { priority: 2 });
+	delegate.addListener(() => result += 'd', { priority: 1 });
 
 	delegate.broadcast();
 	assertStrictEquals(result, 'bcad');
@@ -64,8 +64,7 @@ Deno.test('times', () => {
 	let str = '';
 	delegate.addListener(
 		(s) => str += s,
-		Delegate.DEFAULT_PRIORITY,
-		2,
+		{ times: 2 },
 	);
 
 	delegate.broadcast('a');
