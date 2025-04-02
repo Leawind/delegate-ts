@@ -70,6 +70,12 @@ export class Delegate<E> {
 		return this.name;
 	}
 
+	public clear(): this {
+		this.listeners = [];
+		this.listenerOptions = [];
+		return this;
+	}
+
 	public addListener(
 		listener: DelegateListener<E>,
 		options?: Partial<DelegateListenerOptions>,
