@@ -73,7 +73,7 @@ export class Delegate<E> {
 	public addListener(
 		listener: DelegateListener<E>,
 		options?: Partial<DelegateListenerOptions>,
-	): void {
+	): this {
 		const parsedOption = Object.assign({
 			priority: Delegate.DEFAULT_PRIORITY,
 		}, options);
@@ -87,6 +87,8 @@ export class Delegate<E> {
 
 		this.listeners.splice(index, 0, listener);
 		this.listenerOptions.splice(index, 0, parsedOption);
+
+		return this;
 	}
 
 	/**
@@ -96,12 +98,13 @@ export class Delegate<E> {
 	 *
 	 * @param listener The listener to remove.
 	 */
-	public removeListener(listener: DelegateListener<E>): void {
+	public removeListener(listener: DelegateListener<E>): this {
 		const index = this.listeners.indexOf(listener);
 		if (index !== -1) {
 			this.listeners.splice(index, 1);
 			this.listenerOptions.splice(index, 1);
 		}
+		return this;
 	}
 
 	/**
