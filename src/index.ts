@@ -1,137 +1,144 @@
-/**
- * The result of a delegate listener.
- */
-export type DelegateResult = {
-	/**
-	 * Whether to break the loop.
-	 *
-	 * If `true`, subsequent listeners will not be executed.
-	 *
-	 * Default is `false`.
-	 */
-	break: boolean;
+class DelegateEvent<D> {
+	#doStop: boolean = false;
+	#doRemoveSelf: boolean = false;
+
+	public get doStop(): boolean {
+		return this.#doStop;
+	}
+
+	public get doRemoveSelf(): boolean {
+		return this.#doRemoveSelf;
+	}
+
+	public constructor(
+		/**
+		 * Current event data
+		 */
+		public readonly data: D,
+	) {}
 
 	/**
-	 * Whether to remove the listener after the event is broadcast.
+	 * Stops event propagation
 	 *
-	 * If `true`, the listener will be removed after the event is broadcast.
-	 *
-	 * Default is `false`.
+	 * - It can be invoked multiple times in a listener
+	 * - It can't be canceled once invoked
 	 */
-	removeSelf: boolean;
-};
+	public stop(): void {
+		this.#doStop = true;
+	}
 
-/**
- * Delegate listener
- *
- * If the return value === `false`, subsequent listeners will not be executed
- */
-export type DelegateListener<E> = (event: E) => Partial<DelegateResult> | void;
-
-export type DelegateListenerOptions = {
 	/**
-	 * The priority of the listener.
+	 * Remove this listener after execution
 	 *
-	 * - Listeners with higher priority will be called first.
-	 * - Listeners with the same priority will be called in the order they were added.
+	 * - It can be invoked multiple times in a listener
+	 * - It can't be canceled once invoked
 	 */
+	public removeSelf(): void {
+		this.#doRemoveSelf = true;
+	}
+}
+
+type DelegateListener<D> = (e: DelegateEvent<D>) => void;
+
+type DelegateHandler<D> = {
+	listener: DelegateListener<D>;
 	priority: number;
 };
 
 /**
- * A class that manages a list of listeners and allows broadcasting events to them.
- * Listeners can be added with a priority, and they will be called in order of priority.
- * If a listener returns `false`, subsequent listeners will not be executed.
+ *  Event delegation system with prioritized listener execution
  *
- * @template E The type of event object.
+ * @template D Type of event data
  */
-export class Delegate<E> {
-	public static readonly DEFAULT_PRIORITY = 0;
-
-	private name: string;
+export class Delegate<D> {
+	private static readonly DEFAULT_PRIORITY = 0;
 
 	// From high to low priority
-	private listeners: DelegateListener<E>[] = [];
-	private listenerOptions: DelegateListenerOptions[] = [];
+	private handlers: DelegateHandler<D>[] = [];
+
+	public constructor(
+		public name: string = 'Unnamed',
+	) {}
 
 	/**
-	 * Creates an instance of Delegate.
-	 * @param name The name of the delegate.
+	 * Remove all listeners
 	 */
-	constructor(name: string = 'Unnamed Delegate') {
-		this.name = name;
-	}
-
-	/**
-	 * Gets the name of the delegate.
-	 * @returns The name of the delegate.
-	 */
-	public getName(): string {
-		return this.name;
-	}
-
 	public clear(): this {
-		this.listeners = [];
-		this.listenerOptions = [];
+		this.handlers = [];
 		return this;
 	}
 
 	public addListener(
-		listener: DelegateListener<E>,
-		options?: Partial<DelegateListenerOptions>,
+		listener: DelegateListener<D>,
+		priority: number = Delegate.DEFAULT_PRIORITY,
 	): this {
-		const parsedOption = Object.assign({
-			priority: Delegate.DEFAULT_PRIORITY,
-		}, options);
-
-		let index = this.listenerOptions
-			.findIndex((o) => o.priority < parsedOption.priority);
+		let index = this.handlers
+			.findIndex((h) => h.priority < priority);
 
 		if (index === -1) {
-			index = this.listeners.length;
+			index = this.handlers.length;
 		}
 
-		this.listeners.splice(index, 0, listener);
-		this.listenerOptions.splice(index, 0, parsedOption);
+		this.handlers.splice(index, 0, { listener, priority });
 
 		return this;
 	}
 
 	/**
-	 * Remove a listener from the delegate. If a same listener was added multiple times, only the one with the highest priority will be removed.
+	 * Removes first occurrence of listener
 	 *
-	 * Do nothing if the listener is not found.
+	 * Only removes highest-priority instance if duplicate
 	 *
 	 * @param listener The listener to remove.
 	 */
-	public removeListener(listener: DelegateListener<E>): this {
-		const index = this.listeners.indexOf(listener);
+	public removeListener(listener: DelegateListener<D>): this {
+		const index = this.handlers.findIndex((h) => h.listener === listener);
 		if (index !== -1) {
-			this.listeners.splice(index, 1);
-			this.listenerOptions.splice(index, 1);
+			this.handlers.splice(index, 1);
 		}
 		return this;
 	}
 
 	/**
-	 * Broadcast an event to all listeners.
-	 * @param event The event to broadcast.
+	 * Broadcasts data to listeners
+	 *
+	 * Execution order: High -> Low priority
 	 */
-	public broadcast(event: E): void {
+	public broadcast(event: D): void {
 		let i = 0;
-		while (i < this.listeners.length) {
-			const listener = this.listeners[i];
-			const result = listener(event);
+		while (i < this.handlers.length) {
+			const handler = this.handlers[i];
+			const ctx = new DelegateEvent(event);
+			handler.listener(ctx);
 
-			if (result?.removeSelf) {
-				this.removeListener(listener);
+			if (ctx.doRemoveSelf) {
+				this.removeListener(handler.listener);
 			}
 
-			if (result?.break) {
+			if (ctx.doStop) {
 				break;
 			}
 
 			i++;
 		}
+	}
+
+	/**
+	 * Syntax sugar for listener declaration
+	 *
+	 * Example:
+	 *
+	 * ```ts
+	 * const listener = delegate.listener(event => result += event.data);
+	 * ```
+	 *
+	 * equals to:
+	 *
+	 * ```ts
+	 * const listener: DelegateListener<string> = event => result += event.data;
+	 * ```
+	 */
+	public listener(listener: DelegateListener<D>): DelegateListener<D> {
+		return listener;
 	}
 }
