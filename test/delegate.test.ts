@@ -74,3 +74,61 @@ Deno.test('Listener returns false', () => {
 	delegate.broadcast('test');
 	assertStrictEquals(result, 'test');
 });
+
+Deno.test('Adding the same listener multiple times', () => {
+	const delegate = new Delegate<string>();
+	let result = '';
+
+	const listener = delegate.listener((e) => result += e.data);
+	delegate.addListener(listener);
+	delegate.addListener(listener);
+
+	delegate.broadcast('a');
+	delegate.removeListener(listener);
+	delegate.broadcast('b');
+
+	assertStrictEquals(result, 'aab');
+});
+
+Deno.test('Removing non-existent listener', () => {
+	const delegate = new Delegate<string>();
+	let result = '';
+
+	delegate.removeListener(() => {});
+	delegate.addListener((e) => result = e.data);
+
+	delegate.broadcast('valid');
+	assertStrictEquals(result, 'valid');
+});
+
+Deno.test('Mixed priority execution order', () => {
+	const delegate = new Delegate<string>();
+	let result = '';
+
+	delegate.addListener(() => result += '3_', 3);
+	delegate.addListener(() => result += '1_', 1);
+	delegate.addListener(() => result += '2_', 2);
+
+	delegate.broadcast('');
+	assertStrictEquals(result, '3_2_1_');
+});
+
+Deno.test('Event object property verification', () => {
+	const delegate = new Delegate<string>();
+	let receivedData = '';
+	let stopCalled = false;
+	let removeSelfCalled = false;
+
+	delegate.addListener((e) => {
+		receivedData = e.data;
+		e.stop();
+		stopCalled = e.doStop;
+		e.removeSelf();
+		removeSelfCalled = e.doRemoveSelf;
+	});
+
+	delegate.broadcast('test');
+	assertStrictEquals(receivedData, 'test');
+	assertStrictEquals(stopCalled, true);
+	assertStrictEquals(removeSelfCalled, true);
+});
