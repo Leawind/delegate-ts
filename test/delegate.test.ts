@@ -24,12 +24,25 @@ Deno.test('Add listener', () => {
 });
 
 Deno.test('Set listener', () => {
-	const delegate = new Delegate<void>();
-	let result = '=';
-	delegate.setListener('a', () => result += 'A');
-	delegate.setListener('a', () => result += 'B');
-	delegate.broadcast();
-	assertStrictEquals(result, '=B');
+	[
+		Symbol(),
+		'a',
+		'',
+		345,
+		6n,
+		false,
+		true,
+		{},
+		[],
+		new Set(),
+	].forEach((key) => {
+		const delegate = new Delegate<void>();
+		let result = '=';
+		delegate.setListener(key, () => result += 'A');
+		delegate.setListener(key, () => result += 'B');
+		delegate.broadcast();
+		assertStrictEquals(result, '=B');
+	});
 });
 
 Deno.test('Remove listener', () => {

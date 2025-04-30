@@ -39,9 +39,10 @@ class DelegateEvent<D> {
 }
 
 type DelegateListener<D> = (e: DelegateEvent<D>) => void;
+type DelegateHandlerKey = NonNullable<unknown>;
 
 type DelegateHandler<D> = {
-	key?: string;
+	key?: DelegateHandlerKey;
 	listener: DelegateListener<D>;
 	priority: number;
 };
@@ -59,7 +60,7 @@ export class Delegate<D> {
 	/**
 	 * Map: key => handler
 	 */
-	private keys: Map<string, DelegateHandler<D>> = new Map();
+	private keys: Map<unknown, DelegateHandler<D>> = new Map();
 
 	public constructor(
 		public name: string = 'Unnamed',
@@ -86,7 +87,7 @@ export class Delegate<D> {
 	}
 
 	public setListener(
-		key: string,
+		key: DelegateHandlerKey,
 		listener: DelegateListener<D>,
 		priority: number = Delegate.DEFAULT_PRIORITY,
 	): this {
