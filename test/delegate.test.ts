@@ -23,6 +23,15 @@ Deno.test('Add listener', () => {
 	assertStrictEquals(result, 'testTEST');
 });
 
+Deno.test('Set listener', () => {
+	const delegate = new Delegate<void>();
+	let result = '=';
+	delegate.setListener('a', () => result += 'A');
+	delegate.setListener('a', () => result += 'B');
+	delegate.broadcast();
+	assertStrictEquals(result, '=B');
+});
+
 Deno.test('Remove listener', () => {
 	const delegate = new Delegate<string>();
 	let result = '';

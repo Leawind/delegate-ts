@@ -41,6 +41,7 @@ class DelegateEvent<D> {
 type DelegateListener<D> = (e: DelegateEvent<D>) => void;
 
 type DelegateHandler<D> = {
+	key?: string;
 	listener: DelegateListener<D>;
 	priority: number;
 };
@@ -55,6 +56,10 @@ export class Delegate<D> {
 
 	// From high to low priority
 	private handlers: DelegateHandler<D>[] = [];
+	/**
+	 * Map: key => handler
+	 */
+	private keys: Map<string, DelegateHandler<D>> = new Map();
 
 	public constructor(
 		public name: string = 'Unnamed',
@@ -68,22 +73,53 @@ export class Delegate<D> {
 		return this;
 	}
 
-	public addListener(
-		listener: DelegateListener<D>,
-		priority: number = Delegate.DEFAULT_PRIORITY,
-	): this {
+	protected addHandler(handler: DelegateHandler<D>): this {
 		let index = this.handlers
-			.findIndex((h) => h.priority < priority);
+			.findIndex((h) => h.priority < handler.priority);
 
 		if (index === -1) {
 			index = this.handlers.length;
 		}
 
-		this.handlers.splice(index, 0, { listener, priority });
+		this.handlers.splice(index, 0, handler);
+		return this;
+	}
+
+	public setListener(
+		key: string,
+		listener: DelegateListener<D>,
+		priority: number = Delegate.DEFAULT_PRIORITY,
+	): this {
+		let handler = this.keys.get(key);
+
+		if (handler) {
+			handler.listener = listener;
+			return this;
+		}
+
+		handler = { key, listener, priority };
+
+		this.keys.set(key, handler);
+		this.addHandler(handler);
 
 		return this;
 	}
 
+	public addListener(
+		listener: DelegateListener<D>,
+		priority: number = Delegate.DEFAULT_PRIORITY,
+	): this {
+		return this.addHandler({ listener, priority });
+	}
+
+	/**
+	 * Remove listeners by key
+	 *
+	 * If the key doesn't exist, it does nothing
+	 *
+	 * @param key The key of the listener to remove.
+	 */
+	public removeListener(key: string): this;
 	/**
 	 * Removes first occurrence of listener
 	 *
@@ -91,10 +127,25 @@ export class Delegate<D> {
 	 *
 	 * @param listener The listener to remove.
 	 */
-	public removeListener(listener: DelegateListener<D>): this {
-		const index = this.handlers.findIndex((h) => h.listener === listener);
-		if (index !== -1) {
-			this.handlers.splice(index, 1);
+	public removeListener(listener: DelegateListener<D>): this;
+	public removeListener(arg: string | DelegateListener<D>): this {
+		if (typeof arg === 'string') {
+			const handler = this.keys.get(arg);
+			if (handler) {
+				const index = this.handlers
+					.findIndex((h) => h.key === handler.key);
+				if (index !== -1) {
+					this.handlers.splice(index, 1);
+				}
+			}
+		} else {
+			const listener = arg;
+			const index = this.handlers.findIndex((h) =>
+				h.listener === listener
+			);
+			if (index !== -1) {
+				this.handlers.splice(index, 1);
+			}
 		}
 		return this;
 	}
