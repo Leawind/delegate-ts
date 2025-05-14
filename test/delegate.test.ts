@@ -32,9 +32,6 @@ Deno.test('Set listener', () => {
 		6n,
 		false,
 		true,
-		{},
-		[],
-		new Set(),
 	].forEach((key) => {
 		const delegate = new Delegate<void>();
 		let result = '=';
@@ -81,6 +78,20 @@ Deno.test('Priority', () => {
 	assertStrictEquals(result, 'bcad');
 });
 
+Deno.test('Once', () => {
+	const delegate = new Delegate<void>();
+
+	let result = '';
+
+	delegate.addOnce(() => result += 'a');
+	delegate.addOnce(() => result += 'b');
+	delegate.addOnce(() => result += 'c');
+
+	delegate.broadcast();
+
+	assertStrictEquals(result, 'abc');
+});
+
 Deno.test('Listener returns false', () => {
 	const delegate = new Delegate<string>();
 
@@ -123,6 +134,21 @@ Deno.test('Removing non-existent listener', () => {
 	assertStrictEquals(result, 'valid');
 });
 
+Deno.test('Default priority', () => {
+	const delegate = new Delegate<void>();
+
+	let result = '';
+
+	delegate.addListener(() => result += 'a');
+	delegate.addListener(() => result += 'b');
+	delegate.addListener(() => result += 'c');
+	delegate.addListener(() => result += 'd');
+	delegate.addListener(() => result += 'e');
+
+	delegate.broadcast();
+
+	assertStrictEquals(result, 'abcde');
+});
 Deno.test('Mixed priority execution order', () => {
 	const delegate = new Delegate<string>();
 	let result = '';

@@ -3,6 +3,7 @@ import { Delegate } from '@/index.ts';
 
 Deno.test('Simple Example', () => {
 	// Create a new delegate
+	// The type of the event data is `string`
 	const delegate = new Delegate<string>('Example');
 
 	let str = '';
