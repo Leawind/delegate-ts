@@ -86,6 +86,26 @@ export class Delegate<D> {
 		return this;
 	}
 
+	public setOnce(
+		key: DelegateHandlerKey,
+		listener: DelegateListener<D>,
+	): this {
+		return this.setListener(key, (e) => {
+			listener(e);
+			e.removeSelf();
+		});
+	}
+
+	public addOnce(
+		listener: DelegateListener<D>,
+		priority: number = Delegate.DEFAULT_PRIORITY,
+	): this {
+		return this.addListener((e) => {
+			listener(e);
+			e.removeSelf();
+		}, priority);
+	}
+
 	public setListener(
 		key: DelegateHandlerKey,
 		listener: DelegateListener<D>,
